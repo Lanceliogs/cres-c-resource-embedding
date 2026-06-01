@@ -4,6 +4,8 @@ Embed files and entire directories into C executables at compile time. Access th
 
 Pure C11. No dependencies beyond libc. Vendorable as a handful of files.
 
+It's really just an experiment to build tiny pieces of software with Embedded resources. The first thing I'll do with it is some kind of self-extracting installer for some other projects I have where I don't want to use Inno Setup (which I use and like a lot by the way. I just want to try something else).
+
 ## Features
 
 - Embed individual files or entire directory trees

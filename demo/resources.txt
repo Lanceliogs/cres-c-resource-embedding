@@ -1,0 +1,6 @@
+# Compress text-based assets
+z @www/js/
+z @www/css/
+
+# HTML served raw (small)
+www/index.html

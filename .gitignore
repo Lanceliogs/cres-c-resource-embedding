@@ -1,0 +1,13 @@
+# Build artifacts
+cres
+cres.exe
+*.o
+*.exe
+
+# Generated resource files
+demo/resources.h
+demo/resources.c
+demo/demo
+test/resources.h
+test/resources.c
+test/test_cres

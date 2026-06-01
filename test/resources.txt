@@ -1,0 +1,6 @@
+# raw file (individual entry, keeps full path as key)
+www/hello.txt
+
+# compressed directory (paths relative to www/)
+z @www/css/
+z @www/js/

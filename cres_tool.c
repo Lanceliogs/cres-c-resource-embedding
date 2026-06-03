@@ -9,6 +9,7 @@
  *
  * Manifest format:
  *   # comment
+ *   root path/to/resources       (set base path for resolution + key names)
  *   path/to/file.bin
  *   z path/to/compress.txt
  *   @path/to/directory/
@@ -53,6 +54,7 @@ static Resource resources[MAX_RESOURCES];
 static int resource_count = 0;
 
 static char manifest_dir[1024] = ".";
+static char resource_root[1024] = "";  /* set by 'root' directive */
 
 /* --- Utility ------------------------------------------------------------ */
 
@@ -204,6 +206,8 @@ static void resolve_path(const char *raw, char *out, size_t out_size)
 {
     if (raw[0] == '/' || (raw[0] != '\0' && raw[1] == ':'))
         snprintf(out, out_size, "%s", raw);
+    else if (resource_root[0])
+        path_join(out, out_size, resource_root, raw);
     else
         path_join(out, out_size, manifest_dir, raw);
 }
@@ -233,6 +237,31 @@ static void parse_manifest(const char *manifest_path)
         char *p = line;
         while (*p == ' ' || *p == '\t') p++;
         if (*p == '\0' || *p == '#') continue;
+
+        /* root directive: sets base path for resolution and key generation */
+        if (strncmp(p, "root", 4) == 0 && (p[4] == ' ' || p[4] == '\t')) {
+            p += 4;
+            while (*p == ' ' || *p == '\t') p++;
+            char rawroot[1024];
+            if (!parse_path(p, rawroot, sizeof(rawroot)))
+                die("line %d: invalid root path", lineno);
+
+            /* Resolve root relative to manifest dir */
+            char resolved[1024];
+            if (rawroot[0] == '/' || (rawroot[0] != '\0' && rawroot[1] == ':'))
+                snprintf(resolved, sizeof(resolved), "%s", rawroot);
+            else
+                path_join(resolved, sizeof(resolved), manifest_dir, rawroot);
+
+            /* Ensure trailing slash */
+            size_t rlen = strlen(resolved);
+            if (rlen > 0 && resolved[rlen - 1] != '/') {
+                resolved[rlen] = '/';
+                resolved[rlen + 1] = '\0';
+            }
+            snprintf(resource_root, sizeof(resource_root), "%s", resolved);
+            continue;
+        }
 
         /* check for compression prefix: z, z1-z9 */
         int compress_level = 0;
@@ -266,7 +295,12 @@ static void parse_manifest(const char *manifest_path)
             if (!is_dir(dirpath))
                 die("line %d: not a directory: '%s'", lineno, dirpath);
 
-            scan_dir(dirpath, rawdir, compress_level);
+            /* When root is set, key prefix is the rawdir; for @./ it's empty */
+            char key_prefix[1024] = "";
+            if (strcmp(rawdir, ".") != 0 && rawdir[0] != '\0')
+                snprintf(key_prefix, sizeof(key_prefix), "%s", rawdir);
+
+            scan_dir(dirpath, key_prefix, compress_level);
         } else {
             /* single file */
             char rawpath[1024];
